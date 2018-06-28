@@ -157,9 +157,11 @@ class Application extends \yii\web\Application
     {
         if ( ! static::$webAliasInit)
         {
+            /*
             $request = $this->getRequest();
             Yii::setAlias('@webroot', dirname($request->getScriptFile()));
             Yii::setAlias('@web', $request->getBaseUrl());
+            */
             static::$webAliasInit = true;
         }
 

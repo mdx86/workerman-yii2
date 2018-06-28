@@ -55,7 +55,7 @@ class ErrorHandler extends \yii\web\ErrorHandler
             echo "\n";
             return;
         }
-        $response = new Response;
+        $response = new \tourze\workerman\yii2\web\Response();
         $response->setConnection($this->getConnection());
 
         $useErrorView = $response->format === Response::FORMAT_HTML && ( ! YII_DEBUG || $exception instanceof UserException);

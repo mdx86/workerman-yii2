@@ -268,7 +268,7 @@ class Container extends \yii\di\Container
             }
             // 执行一些配置信息
             Yii::configure($object, $config);
-            if ($object instanceof Object)
+            if ($object instanceof BaseObject)
             {
                 $object->init();
             }
