@@ -1,9 +1,9 @@
 {
-  "name": "tourze/workerman-yii2",
+  "name": "mindongji/workerman-yii2",
   "authors": [
     {
-      "name": "tourze",
-      "email": "dev@tourze.com"
+      "name": "mindong.ji",
+      "email": "285821477@qq.com"
     }
   ],
   "minimum-stability": "stable",

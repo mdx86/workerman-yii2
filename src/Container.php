@@ -4,7 +4,7 @@ namespace tourze\workerman\yii2;
 
 use ReflectionClass;
 use Yii;
-use yii\base\Object;
+use yii\base\BaseObject;
 
 /**
  * 继承原有的容器, 实现一些额外的逻辑
