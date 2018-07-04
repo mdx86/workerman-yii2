@@ -14,8 +14,7 @@ use yii\helpers\FileHelper;
  *
  * @package tourze\workerman\yii2\server
  */
-class HttpServer extends Server
-{
+class HttpServer extends Server {
 
     /**
      * @var string 缺省文件名
@@ -40,11 +39,9 @@ class HttpServer extends Server
     /**
      * @inheritdoc
      */
-    public function run($config)
-    {
+    public function run($config) {
         $this->server = new Worker("http://{$this->host}:{$this->port}");
-        foreach ($config as $k => $v)
-        {
+        foreach ($config as $k => $v) {
             $this->server->{$k} = $v;
         }
 
@@ -62,25 +59,24 @@ class HttpServer extends Server
      *
      * @param Worker $worker
      */
-    public function onWorkerStart($worker)
-    {
+    public function onWorkerStart($worker) {
         $this->setProcessTitle($this->name . ': worker');
 
         $_SERVER = [
-            'QUERY_STRING'         => '',
-            'REQUEST_METHOD'       => '',
-            'REQUEST_URI'          => '',
-            'SERVER_PROTOCOL'      => '',
-            'SERVER_NAME'          => '',
-            'HTTP_HOST'            => '',
-            'HTTP_USER_AGENT'      => '',
-            'HTTP_ACCEPT'          => '',
+            'QUERY_STRING' => '',
+            'REQUEST_METHOD' => '',
+            'REQUEST_URI' => '',
+            'SERVER_PROTOCOL' => '',
+            'SERVER_NAME' => '',
+            'HTTP_HOST' => '',
+            'HTTP_USER_AGENT' => '',
+            'HTTP_ACCEPT' => '',
             'HTTP_ACCEPT_LANGUAGE' => '',
             'HTTP_ACCEPT_ENCODING' => '',
-            'HTTP_COOKIE'          => '',
-            'HTTP_CONNECTION'      => '',
-            'REMOTE_ADDR'          => '',
-            'REMOTE_PORT'          => '0',
+            'HTTP_COOKIE' => '',
+            'HTTP_CONNECTION' => '',
+            'REMOTE_ADDR' => '',
+            'REMOTE_PORT' => '0',
         ];
 
         $file = $this->root . '/' . $this->indexFile;
@@ -100,26 +96,23 @@ class HttpServer extends Server
     /**
      * @param Worker $worker
      */
-    public function onWorkerReload($worker)
-    {
+    public function onWorkerReload($worker) {
     }
 
     /**
      * @param Worker $worker
      */
-    public function onWorkerStop($worker)
-    {
+    public function onWorkerStop($worker) {
     }
 
     /**
      * 执行请求
      *
      * @param ConnectionInterface $connection
-     * @param mixed               $data
+     * @param mixed $data
      * @return bool|void
      */
-    public function onMessage($connection, $data)
-    {
+    public function onMessage($connection, $data) {
 //        $id = posix_getpid();
 //        echo "id: $id\n";
 //        $t = '<pre>';
@@ -127,27 +120,33 @@ class HttpServer extends Server
 //        $t .= '</pre>';
 //        return $connection->send($t);
 
-        if ($this->debug)
-        {
+        if ($this->debug) {
             xhprof_enable(XHPROF_FLAGS_MEMORY | XHPROF_FLAGS_CPU);
+            echo "debug\n";
+        }
+
+        if ($this->displayRequest) {
+            $log = $this->getRequestLog($connection);
+            echo "$log\n";
         }
 
         $_SERVER['REQUEST_SCHEME'] = 'http';
         $urlInfo = parse_url($_SERVER['REQUEST_URI']);
+
         //var_dump($urlInfo);
         $uri = $_SERVER['ORIG_PATH_INFO'] = $urlInfo['path'];
         $file = $this->root . $uri;
 
-        if ($uri != '/' && is_file($file) && pathinfo($file, PATHINFO_EXTENSION) != 'php')
-        {
+        //echo "$uri\n";
+        //print_r($data);
+
+        if ($uri != '/' && is_file($file) && pathinfo($file, PATHINFO_EXTENSION) != 'php') {
             // 非php文件, 最好使用nginx来输出
             Http::header('Content-Type: ' . FileHelper::getMimeTypeByExtension($file));
             Http::header('Content-Length: ' . filesize($file));
             $connection->close(file_get_contents($file));
             return;
-        }
-        else
-        {
+        } else {
             $_SERVER['REQUEST_TIME_FLOAT'] = microtime(true);
             $_SERVER['REQUEST_TIME'] = time();
 
@@ -164,36 +163,25 @@ class HttpServer extends Server
             $app->setSession(clone $this->app->getSession());
             $app->setUser(clone $this->app->getUser());
 
-            try
-            {
+            try {
                 $app->run();
                 $app->afterRun();
-            }
-            catch (ErrorException $e)
-            {
+            } catch (ErrorException $e) {
                 $app->afterRun();
-                if ($this->debug)
-                {
-                    echo (string) $e;
+                if ($this->debug) {
+                    echo (string)$e;
                     echo "\n";
                     $connection->send('');
-                }
-                else
-                {
+                } else {
                     $app->getErrorHandler()->handleException($e);
                 }
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $app->afterRun();
-                if ($this->debug)
-                {
-                    echo (string) $e;
+                if ($this->debug) {
+                    echo (string)$e;
                     echo "\n";
                     $connection->send('');
-                }
-                else
-                {
+                } else {
                     $app->getErrorHandler()->handleException($e);
                 }
             }
@@ -202,13 +190,44 @@ class HttpServer extends Server
             unset($app);
         }
 
-        if ($this->debug)
-        {
+        if ($this->debug) {
             $xhprofData = xhprof_disable();
             $xhprofRuns = new \XHProfRuns_Default();
             $runId = $xhprofRuns->save_run($xhprofData, 'xhprof_test');
             echo $this->xhprofLink ? str_replace('{tag}', $runId, $this->xhprofLink) : $runId;
             echo "\n";
         }
+    }
+
+    private function getRequestLog($connection, $ignoreDate = false) {
+        $method = $_SERVER['REQUEST_METHOD'];
+        $path = $_SERVER['REQUEST_URI'];
+        $remoteIP = $this->getRealIP($_SERVER);
+        $remotePort = $connection->getRemotePort();
+        $message = "  $method $path   -   $remoteIP:$remotePort";
+        if (!$ignoreDate) {
+            $message = date('Y-m-d H:i:s') . $message;
+        }
+        $message = trim($message);
+        return $message;
+    }
+
+    private function getRealIP($server) {
+        $ip = '';
+        if (isset($server['HTTP_CLIENT_IP']))
+            $ip = $server['HTTP_CLIENT_IP'];
+        else if (isset($server['HTTP_X_FORWARDED_FOR']))
+            $ip = $server['HTTP_X_FORWARDED_FOR'];
+        else if (isset($server['HTTP_X_FORWARDED']))
+            $ip = $server['HTTP_X_FORWARDED'];
+        else if (isset($server['HTTP_FORWARDED_FOR']))
+            $ip = $server['HTTP_FORWARDED_FOR'];
+        else if (isset($server['HTTP_FORWARDED']))
+            $ip = $server['HTTP_FORWARDED'];
+        else if (isset($server['REMOTE_ADDR']))
+            $ip = $server['REMOTE_ADDR'];
+        else
+            $ip = 'UNKNOWN';
+        return $ip;
     }
 }
