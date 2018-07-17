@@ -1,5 +1,6 @@
 {
     "name": "mindongji/workerman-yii2",
+    "license": "MIT",
     "authors": [
         {
             "name": "mindong.ji",
