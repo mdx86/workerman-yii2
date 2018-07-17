@@ -8,7 +8,7 @@ use tourze\workerman\yii2\Container;
 use tourze\workerman\yii2\log\Logger;
 use Workerman\Worker;
 use Yii;
-use yii\base\BaseObject;
+use yii\base\Component;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -16,7 +16,7 @@ use yii\helpers\ArrayHelper;
  *
  * @package tourze\workerman\yii2\server
  */
-abstract class Server extends BaseObject {
+abstract class Server extends Component {
 
     /**
      * @var array 当前配置文件
@@ -151,8 +151,8 @@ abstract class Server extends BaseObject {
 
     /**
      * 运行HTTP服务器
-     *
-     * @param array $config
+     * @param $config
+     * @return null|HttpServer
      */
     public static function runAppHttpServer($config) {
         $isDebug = ArrayHelper::getValue($config, 'debug', false);
@@ -174,13 +174,15 @@ abstract class Server extends BaseObject {
                 'root' => $root,
             ]);
             $server->run($serverConfig);
+            return $server;
         }
+        return null;
     }
 
     /**
      * 运行任务处理服务器
-     *
-     * @param array $config
+     * @param $config
+     * @return null|TaskServer
      */
     public static function runAppTaskServer($config) {
         // 是否开启调试
@@ -197,7 +199,9 @@ abstract class Server extends BaseObject {
                 'debug' => $isDebug,
             ]);
             $task->run($taskConfig);
+            return $task;
         }
+        return null;
     }
 
     /**
@@ -205,7 +209,7 @@ abstract class Server extends BaseObject {
      *
      * @param string $app
      */
-    final public static function runApp($app) {
+    final public static function runApp($app, $globalRun = false) {
         // 加载配置信息
         $config = (array)Yii::$app->params['workermanHttp'][$app];
 
@@ -219,11 +223,17 @@ abstract class Server extends BaseObject {
         Worker::$logFile = ArrayHelper::getValue($config, 'logFile');
 
         // 执行 HTTP SERVER
-        self::runAppHttpServer($config);
+        $httpServer = self::runAppHttpServer($config);
 
         // 执行 TASK SERVER
-        self::runAppTaskServer($config);
+        $taskServer = self::runAppTaskServer($config);
 
-        Worker::runAll();
+        if (!$globalRun) {
+            Worker::runAll();
+        }
+        return [
+            'http' => $httpServer,
+            'task' => $taskServer,
+        ];
     }
 }

@@ -16,6 +16,15 @@ use yii\helpers\FileHelper;
  */
 class HttpServer extends Server {
 
+    const EVENT_BEFORE_WORKER_START = 'event_before_worker_start';
+    const EVENT_AFTER_WORKER_START = 'event_after_worker_start';
+    const EVENT_BEFORE_WORKER_MESSAGE = 'event_before_worker_message';
+    const EVENT_AFTER_WORKER_MESSAGE = 'event_after_worker_message';
+    const EVENT_BEFORE_WORKER_RELOAD = 'event_before_worker_reload';
+    const EVENT_AFTER_WORKER_RELOAD = 'event_after_worker_reload';
+    const EVENT_BEFORE_WORKER_STOP = 'event_before_worker_stop';
+    const EVENT_AFTER_WORKER_STOP = 'event_after_worker_stop';
+
     /**
      * @var string 缺省文件名
      */
@@ -60,6 +69,8 @@ class HttpServer extends Server {
      * @param Worker $worker
      */
     public function onWorkerStart($worker) {
+        $event = new WorkerEvent(['worker' => $worker]);
+        $this->trigger(self::EVENT_BEFORE_WORKER_START, $event);
         $this->setProcessTitle($this->name . ': worker');
 
         $_SERVER = [
@@ -91,18 +102,29 @@ class HttpServer extends Server {
         $this->app = clone $this->app;
         $this->app->setServer($this->server);
         $this->app->prepare();
+        $this->trigger(self::EVENT_AFTER_WORKER_START, $event);
     }
 
     /**
      * @param Worker $worker
      */
     public function onWorkerReload($worker) {
+        $event = new WorkerEvent([
+            'worker' => $worker,
+        ]);
+        $this->trigger(self::EVENT_BEFORE_WORKER_RELOAD, $event);
+
+        $this->trigger(self::EVENT_AFTER_WORKER_RELOAD, $event);
     }
 
     /**
      * @param Worker $worker
      */
     public function onWorkerStop($worker) {
+        $event = new WorkerEvent(['worker' => $worker]);
+        $this->trigger(self::EVENT_BEFORE_WORKER_STOP, $event);
+
+        $this->trigger(self::EVENT_AFTER_WORKER_STOP, $event);
     }
 
     /**
@@ -119,6 +141,12 @@ class HttpServer extends Server {
 //        $t .= print_r($_SERVER, true);
 //        $t .= '</pre>';
 //        return $connection->send($t);
+        $event = new WorkerEvent([
+            'worker' => $this->app->getServer(),
+            'connection' => $connection,
+            'data' => $data
+        ]);
+        $this->trigger(self::EVENT_BEFORE_WORKER_MESSAGE, $event);
 
         if ($this->debug) {
             xhprof_enable(XHPROF_FLAGS_MEMORY | XHPROF_FLAGS_CPU);
@@ -197,6 +225,7 @@ class HttpServer extends Server {
             echo $this->xhprofLink ? str_replace('{tag}', $runId, $this->xhprofLink) : $runId;
             echo "\n";
         }
+        $this->trigger(self::EVENT_AFTER_WORKER_MESSAGE, $event);
     }
 
     private function getRequestLog($connection, $ignoreDate = false) {
