@@ -16,14 +16,15 @@ use yii\base\Controller;
 use yii\base\Event;
 use yii\base\InvalidConfigException;
 use yii\base\Widget;
+use yii\db\Connection;
+use yii\helpers\ArrayHelper;
 
 /**
  * Yii2 Application 类
  *
  * @property string rootPath
  */
-class Application extends \yii\web\Application
-{
+class Application extends \yii\web\Application {
 
     /**
      * @var array 全局配置信息
@@ -35,8 +36,7 @@ class Application extends \yii\web\Application
      *
      * @param array $config
      */
-    public static function setGlobalConfig($config)
-    {
+    public static function setGlobalConfig($config) {
         static::$_globalConfig = $config;
     }
 
@@ -45,8 +45,7 @@ class Application extends \yii\web\Application
      *
      * @return array
      */
-    public static function getGlobalConfig()
-    {
+    public static function getGlobalConfig() {
         return static::$_globalConfig;
     }
 
@@ -63,16 +62,14 @@ class Application extends \yii\web\Application
     /**
      * @return Worker
      */
-    public function getServer()
-    {
+    public function getServer() {
         return $this->_server;
     }
 
     /**
      * @param Worker $server
      */
-    public function setServer($server)
-    {
+    public function setServer($server) {
         $this->_server = $server;
     }
 
@@ -84,16 +81,14 @@ class Application extends \yii\web\Application
     /**
      * @return ConnectionInterface
      */
-    public function getConnection()
-    {
+    public function getConnection() {
         return $this->_connection;
     }
 
     /**
      * @param ConnectionInterface $connection
      */
-    public function setConnection($connection)
-    {
+    public function setConnection($connection) {
         $this->_connection = $connection;
     }
 
@@ -105,16 +100,14 @@ class Application extends \yii\web\Application
     /**
      * @return string
      */
-    public function getRootPath()
-    {
+    public function getRootPath() {
         return $this->_rootPath;
     }
 
     /**
      * @param string $rootPath
      */
-    public function setRootPath($rootPath)
-    {
+    public function setRootPath($rootPath) {
         $this->_rootPath = $rootPath;
     }
 
@@ -133,10 +126,8 @@ class Application extends \yii\web\Application
      *
      * @return array|mixed
      */
-    public function getDefaultExtensions()
-    {
-        if (static::$defaultExtensionCache === null)
-        {
+    public function getDefaultExtensions() {
+        if (static::$defaultExtensionCache === null) {
             $file = Yii::getAlias('@vendor/yiisoft/extensions.php');
             static::$defaultExtensionCache = is_file($file) ? include($file) : [];
         }
@@ -153,10 +144,8 @@ class Application extends \yii\web\Application
      *
      * @throws \yii\base\InvalidConfigException
      */
-    public function bootstrap()
-    {
-        if ( ! static::$webAliasInit)
-        {
+    public function bootstrap() {
+        if (!static::$webAliasInit) {
             /*
             $request = $this->getRequest();
             Yii::setAlias('@webroot', dirname($request->getScriptFile()));
@@ -174,23 +163,17 @@ class Application extends \yii\web\Application
      *
      * @throws \yii\base\InvalidConfigException
      */
-    public function extensionBootstrap()
-    {
-        if ( ! $this->extensions)
-        {
+    public function extensionBootstrap() {
+        if (!$this->extensions) {
             $this->extensions = $this->getDefaultExtensions();
         }
-        foreach ($this->extensions as $k => $extension)
-        {
-            if ( ! empty($extension['alias']))
-            {
-                foreach ($extension['alias'] as $name => $path)
-                {
+        foreach ($this->extensions as $k => $extension) {
+            if (!empty($extension['alias'])) {
+                foreach ($extension['alias'] as $name => $path) {
                     Yii::setAlias($name, $path);
                 }
             }
-            if (isset($extension['bootstrap']))
-            {
+            if (isset($extension['bootstrap'])) {
                 $this->bootstrap[] = $extension['bootstrap'];
                 Yii::trace('Push extension bootstrap to module bootstrap list', __METHOD__);
             }
@@ -202,40 +185,28 @@ class Application extends \yii\web\Application
      *
      * @throws \yii\base\InvalidConfigException
      */
-    public function moduleBootstrap()
-    {
-        foreach ($this->bootstrap as $k => $class)
-        {
+    public function moduleBootstrap() {
+        foreach ($this->bootstrap as $k => $class) {
             $component = null;
-            if (is_string($class))
-            {
-                if ($this->has($class))
-                {
+            if (is_string($class)) {
+                if ($this->has($class)) {
                     $component = $this->get($class);
-                }
-                elseif ($this->hasModule($class))
-                {
+                } elseif ($this->hasModule($class)) {
                     $component = $this->getModule($class);
-                }
-                elseif (strpos($class, '\\') === false)
-                {
+                } elseif (strpos($class, '\\') === false) {
                     throw new InvalidConfigException("Unknown bootstrapping component ID: $class");
                 }
             }
-            if ( ! isset($component))
-            {
+            if (!isset($component)) {
                 $component = Yii::createObject($class);
             }
 
-            if ($component instanceof BootstrapInterface)
-            {
+            if ($component instanceof BootstrapInterface) {
                 Yii::trace('Bootstrap with ' . get_class($component) . '::bootstrap()', __METHOD__);
                 $this->bootstrap[$k] = $component;
                 $component->bootstrap($this);
                 $this->bootstrap[$k] = $component;
-            }
-            else
-            {
+            } else {
                 Yii::trace('Bootstrap with ' . get_class($component), __METHOD__);
             }
         }
@@ -245,8 +216,7 @@ class Application extends \yii\web\Application
      * @param $errorHandler
      * @throws \yii\base\InvalidConfigException
      */
-    public function setErrorHandler($errorHandler)
-    {
+    public function setErrorHandler($errorHandler) {
         $this->set('errorHandler', $errorHandler);
     }
 
@@ -255,8 +225,7 @@ class Application extends \yii\web\Application
      *
      * @return ErrorHandler
      */
-    public function getErrorHandler()
-    {
+    public function getErrorHandler() {
         return parent::getErrorHandler();
     }
 
@@ -266,8 +235,7 @@ class Application extends \yii\web\Application
      * @param Request $request
      * @throws \yii\base\InvalidConfigException
      */
-    public function setRequest($request)
-    {
+    public function setRequest($request) {
         $this->set('request', $request);
     }
 
@@ -276,8 +244,7 @@ class Application extends \yii\web\Application
      *
      * @return Request|\yii\web\Request
      */
-    public function getRequest()
-    {
+    public function getRequest() {
         return parent::getRequest();
     }
 
@@ -287,8 +254,7 @@ class Application extends \yii\web\Application
      * @param Response $response
      * @throws \yii\base\InvalidConfigException
      */
-    public function setResponse($response)
-    {
+    public function setResponse($response) {
         $this->set('response', $response);
     }
 
@@ -297,8 +263,7 @@ class Application extends \yii\web\Application
      *
      * @return Response
      */
-    public function getResponse()
-    {
+    public function getResponse() {
         return parent::getResponse();
     }
 
@@ -308,8 +273,7 @@ class Application extends \yii\web\Application
      * @param View|\yii\web\View $view
      * @throws \yii\base\InvalidConfigException
      */
-    public function setView($view)
-    {
+    public function setView($view) {
         $this->set('view', $view);
     }
 
@@ -318,8 +282,7 @@ class Application extends \yii\web\Application
      *
      * @return View
      */
-    public function getView()
-    {
+    public function getView() {
         return parent::getView();
     }
 
@@ -329,8 +292,7 @@ class Application extends \yii\web\Application
      * @param Session $session
      * @throws \yii\base\InvalidConfigException
      */
-    public function setSession($session)
-    {
+    public function setSession($session) {
         $this->set('session', $session);
     }
 
@@ -339,16 +301,14 @@ class Application extends \yii\web\Application
      *
      * @return Session
      */
-    public function getSession()
-    {
+    public function getSession() {
         return parent::getSession();
     }
 
     /**
      * @return User
      */
-    public function getUser()
-    {
+    public function getUser() {
         return parent::getUser();
     }
 
@@ -356,8 +316,7 @@ class Application extends \yii\web\Application
      * @param $user
      * @throws \yii\base\InvalidConfigException
      */
-    public function setUser($user)
-    {
+    public function setUser($user) {
         $this->set('user', $user);
     }
 
@@ -366,8 +325,7 @@ class Application extends \yii\web\Application
      *
      * @throws \yii\base\InvalidConfigException
      */
-    public function prepare()
-    {
+    public function prepare() {
         $this->getLog()->setLogger(Yii::getLogger());
         $this->getSecurity();
         $this->getUrlManager();
@@ -376,23 +334,39 @@ class Application extends \yii\web\Application
         $this->getRequest()->setScriptFile('/index.php');
         $this->getRequest()->setUrl(null);
         $this->getResponse();
-        foreach ($this->getResponse()->formatters as $type => $class)
-        {
+        foreach ($this->getResponse()->formatters as $type => $class) {
             $this->getResponse()->formatters[$type] = Yii::createObject($class);
         }
         $this->getSession();
         $this->getAssetManager();
         $this->getView();
-        $this->getDb();
+        //$this->getDb();
+        $this->prepareDbs();
         $this->getUser();
         $this->getMailer();
     }
 
     /**
+     *  实例化所有数据库对象
+     * @throws InvalidConfigException
+     */
+    protected function prepareDbs() {
+        $dbClass = Connection::class;
+        foreach ($this->components as $id => $config) {
+            $class = ArrayHelper::getValue($config, 'class');
+            $class = trim($class, '/\\');
+            if ($class != $dbClass) {
+                continue;
+            }
+
+            $this->get($id);
+        }
+    }
+
+    /**
      * run之前先准备上下文信息
      */
-    public function beforeRun()
-    {
+    public function beforeRun() {
         Event::offAll();
         // widget计数器等要清空
         Widget::$counter = 0;
@@ -402,26 +376,18 @@ class Application extends \yii\web\Application
         $this->getRequest()->setHostInfo('http://' . $_SERVER['HTTP_HOST']);
         $this->getRequest()->setPathInfo($_SERVER['ORIG_PATH_INFO']);
         $this->getResponse()->setConnection($this->getConnection());
-        foreach ($this->bootstrap as $k => $component)
-        {
-            if ( ! is_object($component))
-            {
-                if ($this->has($component))
-                {
+        foreach ($this->bootstrap as $k => $component) {
+            if (!is_object($component)) {
+                if ($this->has($component)) {
                     $component = $this->get($component);
-                }
-                elseif ($this->hasModule($component))
-                {
+                } elseif ($this->hasModule($component)) {
                     $component = $this->getModule($component);
                 }
             }
-            if (in_array(get_class($component), $this->bootstrapRefresh))
-            {
+            if (in_array(get_class($component), $this->bootstrapRefresh)) {
                 /** @var BootstrapInterface $component */
                 $component->bootstrap($this);
-            }
-            elseif ($component instanceof Refreshable)
-            {
+            } elseif ($component instanceof Refreshable) {
                 $component->refresh();
             }
         }
@@ -430,10 +396,8 @@ class Application extends \yii\web\Application
     /**
      * @inheritdoc
      */
-    public function run()
-    {
-        if ( ! Application::$workerApp)
-        {
+    public function run() {
+        if (!Application::$workerApp) {
             return parent::run();
         }
         $this->beforeRun();
@@ -443,26 +407,22 @@ class Application extends \yii\web\Application
     /**
      * 阻止默认的exit执行
      *
-     * @param int   $status
+     * @param int $status
      * @param mixed $response
      * @return int|void
      */
-    public function end($status = 0, $response = null)
-    {
-        if ( ! Application::$workerApp)
-        {
+    public function end($status = 0, $response = null) {
+        if (!Application::$workerApp) {
             return parent::run();
         }
-        if ($this->state === self::STATE_BEFORE_REQUEST || $this->state === self::STATE_HANDLING_REQUEST)
-        {
+        if ($this->state === self::STATE_BEFORE_REQUEST || $this->state === self::STATE_HANDLING_REQUEST) {
             $this->state = self::STATE_AFTER_REQUEST;
             $this->trigger(self::EVENT_AFTER_REQUEST);
         }
 
-        if ($this->state !== self::STATE_SENDING_RESPONSE && $this->state !== self::STATE_END)
-        {
+        if ($this->state !== self::STATE_SENDING_RESPONSE && $this->state !== self::STATE_END) {
             $this->state = self::STATE_END;
-            $response = $response ? : $this->getResponse();
+            $response = $response ?: $this->getResponse();
             $response->send();
         }
         return 0;
@@ -471,8 +431,7 @@ class Application extends \yii\web\Application
     /**
      * 用于收尾
      */
-    public function afterRun()
-    {
+    public function afterRun() {
         Yii::getLogger()->flush();
         $this->getSession()->close();
     }
@@ -489,18 +448,14 @@ class Application extends \yii\web\Application
      *
      * @inheritdoc
      */
-    public function createControllerByID($id)
-    {
-        if ( ! Application::$workerApp)
-        {
+    public function createControllerByID($id) {
+        if (!Application::$workerApp) {
             return parent::createControllerByID($id);
         }
 
-        if ( ! isset(self::$controllerIdCache[$id]))
-        {
+        if (!isset(self::$controllerIdCache[$id])) {
             $controller = parent::createControllerByID($id);
-            if ( ! $controller)
-            {
+            if (!$controller) {
                 return $controller;
             }
             // 清空id和module的引用
