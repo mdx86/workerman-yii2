@@ -461,6 +461,11 @@ class Application extends \yii\web\Application {
             // 清空id和module的引用
             $controller->id = null;
             $controller->module = null;
+
+            // FIX 修复自Yii2.0.36 版本 Controller 类添加 request 与 response 缓存属性，导致不同请求使用同一response对象，
+            //从而导致第二个请求无法返回数据，响应Http的问题
+            //参考: https://github.com/yiisoft/yii2/pull/18083
+            $this->tryToResetRequestAndResponseOfController($controller);
             self::$controllerIdCache[$id] = clone $controller;
         }
 
@@ -470,5 +475,22 @@ class Application extends \yii\web\Application {
         $controller->module = $this;
         $controller->init();
         return $controller;
+    }
+
+    /**
+     * 尝试重置$controller 对象的 request 与 response 对象，针对Yii2.0.36及以上版本起效
+     * @param $controller
+     */
+    protected function tryToResetRequestAndResponseOfController($controller) {
+        $this->resetControllerCacheProperty($controller, 'request');
+        $this->resetControllerCacheProperty($controller, 'response');
+    }
+
+    protected function resetControllerCacheProperty($controller, $property) {
+        if (!property_exists($controller, $property)) {
+            return false;
+        }
+        $controller->$property = $property;
+        return true;
     }
 }
