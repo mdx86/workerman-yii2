@@ -1,5 +1,6 @@
 {
     "name": "mdx86/workerman-yii2",
+    "description": "workerman+yii2 组合项目，业务代码基于yii2开发，底层基于workerman 高性能PHP容器，适用于高并发及访问量高的API等项目",
     "license": "MIT",
     "authors": [
         {
