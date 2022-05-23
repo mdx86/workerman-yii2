@@ -1,12 +1,14 @@
 <?php
 
+use tourze\workerman\yii2\server\Server;
+
 defined('YII_DEBUG') or define('YII_DEBUG', false);
 defined('YII_ENV') or define('YII_ENV', 'prod');
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
-Yii::$app->params['workermanHttp']['demo'] = [
+$config = [
     'root' => __DIR__,
     'debug' => false,
     'xhprofLink' => 'http://127.0.0.1/xhprof/xhprof_html/index.php?run={tag}&source=xhprof_test',
@@ -35,4 +37,5 @@ Yii::$app->params['workermanHttp']['demo'] = [
     ],
 ];
 
-\tourze\workerman\yii2\server\Server::runApp('demo');
+Server::runApp($config);
+\Workerman\Worker::runAll();

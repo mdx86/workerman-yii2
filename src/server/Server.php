@@ -205,13 +205,16 @@ abstract class Server extends Component {
     }
 
     /**
-     * 执行指定的APP配置
-     *
-     * @param string $app
+     * 准备执行app，应在调用此方法后，调用Worker::runAll();方法开始实际启动执行
+     * @param array $config
+     * @return array
      */
-    final public static function runApp($app, $globalRun = false) {
-        // 加载配置信息
-        $config = (array)Yii::$app->params['workermanHttp'][$app];
+    final public static function runApp($config) {
+
+        // TODO 兼容老项目通过项目名称获取配置，老项目更新后，下列代码应删除
+        if (is_string($config)) {
+            $config = (array)Yii::$app->params['workermanHttp'][$config];
+        }
 
         // 加载文件和一些初始化配置
         self::loadBootstrapFile((array)ArrayHelper::getValue($config, 'bootstrapFile'));
@@ -228,9 +231,6 @@ abstract class Server extends Component {
         // 执行 TASK SERVER
         $taskServer = self::runAppTaskServer($config);
 
-        if (!$globalRun) {
-            Worker::runAll();
-        }
         return [
             'http' => $httpServer,
             'task' => $taskServer,
